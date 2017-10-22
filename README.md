@@ -11,7 +11,7 @@ It currently features:
 ----------
 ### Getting Started
 
-####1.  Installing
+#### 1.  Installing
 
 On Windows:
 
@@ -22,7 +22,7 @@ On Linux:
 		./install.sh
 
 
-####2. Running
+#### 2. Running
 
 ##### _gamedevmap_report_
 
