@@ -48,7 +48,7 @@ The command line options for _gamedevmap_report_ are:
                [--city <city_name>]
                [--web_scrape_timeout <float>] 
 
-_company_type_ must be one of the following options: 
+when specified, _company_type_ must be one of the following options: 
 
 		Developer
 		Developer and Publisher
