@@ -4,6 +4,7 @@ import urllib.parse
 import urllib.request
 import re
 from argparse import ArgumentParser
+from collections import defaultdict
 
 from bs4 import BeautifulSoup
 
@@ -71,6 +72,9 @@ class CityInfoWebScraper:
         if pop_str:
             self._info['population'] = parse_number(pop_str)
 
+    def __getitem__(self, item):
+        return self._info[item]
+
     def csv_fields(self):
         return ','.join([str(data) for data in self._info.keys()])
 
@@ -91,8 +95,8 @@ class CompanyInfoWebScraper:
         self._info = dict(name=name,
                           link=link,
                           type=type_,
-                          has_working_website=None,
-                          has_job_application=None)
+                          accessible_website=None,
+                          job_application_found=None)
         self._timeout = timeout
         self._scrape_info_from_web()
 
@@ -101,17 +105,20 @@ class CompanyInfoWebScraper:
         try:
             with urllib.request.urlopen(self._info['link'], timeout=self._timeout) as response:
                 html = response.read()
-            self._info['has_working_website'] = True
+            self._info['accessible_website'] = True
         except:
             print(f'error accessing \'{self._info["link"]}\'')
-            self._info['has_working_website'] = False
+            self._info['accessible_website'] = False
             return
         soup = BeautifulSoup(html, 'html.parser')
         if soup.find(text='Opening') or soup.find(text='Career') or soup.find(text='Job') or \
                 soup.find(text='Apply'):
-            self._info['has_job_application'] = True
+            self._info['job_application_found'] = True
         else:
-            self._info['has_job_application'] = False
+            self._info['job_application_found'] = False
+
+    def __getitem__(self, item):
+        return self._info[item]
 
     def csv_fields(self):
         return f'{",".join([str(data) for data in self._info.keys()])},{self._city.csv_fields()}'
@@ -123,20 +130,24 @@ class CompanyInfoWebScraper:
 def main():
     parser = ArgumentParser()
     parser.add_argument('--out', type=str, required=True)
-    parser.add_argument('--web_scrape_timeout', type=int, required=False, default=TIMEOUT)
     parser.add_argument('--country', type=str, required=True)
-    parser.add_argument('--company_type', type=str, choices=COMPANY_TYPES, required=False, default='')
     parser.add_argument('--city', type=str, required=False, default='')
+    parser.add_argument('--company_type', type=str, choices=COMPANY_TYPES, required=False, default='')
+    parser.add_argument('--start', type=int, required=False, default=-1)
+    parser.add_argument('--max_count', type=int, required=False, default=-1)
+    parser.add_argument('--web_scrape_timeout', type=int, required=False, default=TIMEOUT)
     args = parser.parse_args()
 
     url = 'https://gamedevmap.com/index.php?' \
           'country={country}&' \
           'city={city}&' \
           'type={company_type}&' \
-          'start=0&count={max_count}'.format(country=args.country,
-                                             city=args.city,
-                                             company_type=args.company_type,
-                                             max_count=MAX_COUNT)
+          'start={start}&' \
+          'count={max_count}'.format(country=args.country,
+                                     city=args.city,
+                                     company_type=args.company_type,
+                                     start=args.start if args.start >= 0 else 0,
+                                     max_count=args.max_count if args.max_count > 0 else MAX_COUNT)
     print(f'accessing {url}')
     with urllib.request.urlopen(url) as response:
         html = response.read()
@@ -161,16 +172,32 @@ def main():
         company_infos.append(CompanyInfoWebScraper(name, link, type_, city_infos[city_name],
                                                    timeout=args.web_scrape_timeout))
         company_type_count[type_] = company_type_count.get(type_, 0) + 1
-    for company_type, count in company_type_count.items():
-        print(f'{count} {company_type}(s) ({count / len(tr_tags) * 100.0}%)')
 
-    if len(company_infos) > 0:
+    stats = defaultdict(lambda: 0)
+    if company_infos:
         out = args.out
         base, _ = os.path.splitext(out)
         with codecs.open('{}.csv'.format(base), 'w', 'utf-8') as csv_file:
             csv_file.write(company_infos[0].csv_fields() + '\n')
-            for company in company_infos:
-                csv_file.write(company.to_csv_str() + '\n')
+            for company_info in company_infos:
+                csv_file.write(company_info.to_csv_str() + '\n')
+                if company_info['accessible_website']:
+                    stats['accessible_websites'] += 1
+                if company_info['job_application_found']:
+                    stats['job_applications_found'] += 1
+
+    print('Summary:')
+    print('- companies per type:')
+    for company_type, count in company_type_count.items():
+        print(f'{count} {company_type}(s) ({count / len(tr_tags) * 100.0}%)')
+    print(f'- accessible websites: '
+          f'{stats["accessible_websites"]}/'
+          f'{len(company_infos)} '
+          f'({stats["accessible_websites"] / len(company_infos) * 100.0}%)')
+    print(f'- job applications found: '
+          f'{stats["job_applications_found"]}/'
+          f'{len(company_infos)} '
+          f'({stats["job_applications_found"] / len(company_infos) * 100.0}%)')
 
 
 if __name__ == '__main__':

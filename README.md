@@ -11,7 +11,7 @@ It currently features:
 ----------
 ### Getting Started
 
-#### 1.  Installing
+####1.  Installing
 
 On Windows:
 
@@ -22,7 +22,7 @@ On Linux:
 		./install.sh
 
 
-#### 2. Running
+####2. Running
 
 ##### _gamedevmap_report_
 
@@ -42,13 +42,15 @@ On Linux, open a terminal and run:
 The command line options for _gamedevmap_report_ are:
 
 		usage: gamedevmap_report [-h] 
-				--out <filename>
+			    --out <filename>
                 --country <country_name>
-               [--company_type <company_type>]
                [--city <city_name>]
+               [--company_type <company_type>]
+               [--start <int>]
+               [--max_count <int>]
                [--web_scrape_timeout <float>] 
 
-when specified, _company_type_ must be one of the following options: 
+_company_type_ must be one of the following options: 
 
 		Developer
 		Developer and Publisher
@@ -58,3 +60,15 @@ when specified, _company_type_ must be one of the following options:
 		Publisher
 		Serious Games
 		Virtual Reality
+
+As a result, _gamedevmap_report_ should output how many and what companies it found...
+
+![Example](http://www.pedroboechat.com/images/game_job_search_tools_1.png)
+
+a summary of its findings...
+
+![Example](http://www.pedroboechat.com/images/game_job_search_tools_2.png)
+
+and, of course, a file with all the processed information in tabular form:
+
+![Example](http://www.pedroboechat.com/images/game_job_search_tools_3.png)
