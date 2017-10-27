@@ -65,7 +65,7 @@ class CityInfoWebScraper:
                 else:
                     pop_str = td_tag.get_text()
                     break
-            elif deep_search and ('Urban' in tr_text or 'Total' in tr_text):
+            elif deep_search and ('Urban' in tr_text or 'Metro' in tr_text or 'City'in tr_text or 'Total' in tr_text):
                 td_tag = tr_tag.find(name='td')
                 pop_str = td_tag.get_text()
                 break
