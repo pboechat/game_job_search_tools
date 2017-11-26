@@ -36,19 +36,19 @@ class CityInfoWebScraper:
     def __init__(self, name, *, timeout=TIMEOUT):
         assert name
         assert timeout
-        self._info = dict(name=name,
-                          population=None)
+        self._info = dict(city_name=name,
+                          city_population=None)
         self._timeout = timeout
         self._scrape_info_from_web()
 
     def _scrape_info_from_web(self):
-        print(f'trying to scrape city ({self._info["name"]}) info from the web')
-        url = f'https://en.wikipedia.org/wiki/{urllib.parse.quote(self._info["name"])}'
+        print('trying to scrape city ({}) info from the web'.format(self._info['city_name']))
+        url = 'https://en.wikipedia.org/wiki/{}'.format(urllib.parse.quote(self._info['city_name']))
         try:
             with urllib.request.urlopen(url, timeout=self._timeout) as response:
                 html = response.read()
         except:
-            print(f'error accessing \'{url}\'')
+            print('error accessing \'{}\''.format(url))
             return
         soup = BeautifulSoup(html, 'html.parser')
         table = soup.find(class_='infobox geography vcard')
@@ -70,7 +70,7 @@ class CityInfoWebScraper:
                 pop_str = td_tag.get_text()
                 break
         if pop_str:
-            self._info['population'] = parse_number(pop_str)
+            self._info['city_population'] = parse_number(pop_str)
 
     def __getitem__(self, item):
         return self._info[item]
@@ -85,46 +85,46 @@ class CityInfoWebScraper:
 class CompanyInfoWebScraper:
     __slots__ = ['_info', '_city', '_timeout']
 
-    def __init__(self, name, link, type_, city, *, timeout=TIMEOUT):
+    def __init__(self, name, website, type_, city, *, timeout=TIMEOUT):
         assert name
-        assert link
+        assert website
         assert type_
         assert city
         assert timeout
         self._city = city
-        self._info = dict(name=name,
-                          link=link,
-                          type=type_,
-                          accessible_website=None,
-                          job_application_found=None)
+        self._info = dict(company_name=name,
+                          company_type=type_,
+                          company_website=website,
+                          could_access_company_website=None,
+                          could_find_job_application=None)
         self._timeout = timeout
         self._scrape_info_from_web()
 
     def _scrape_info_from_web(self):
-        print(f'trying to scrape company ({self._info["name"]}) info from the web')
+        print('trying to scrape company ({}) info from the web'.format(self._info['company_name']))
         try:
-            with urllib.request.urlopen(self._info['link'], timeout=self._timeout) as response:
+            with urllib.request.urlopen(self._info['website'], timeout=self._timeout) as response:
                 html = response.read()
-            self._info['accessible_website'] = True
+            self._info['could_access_company_website'] = True
         except:
-            print(f'error accessing \'{self._info["link"]}\'')
-            self._info['accessible_website'] = False
+            print('error accessing \'{}\''.format(self._info['company_website']))
+            self._info['could_access_company_website'] = False
             return
         soup = BeautifulSoup(html, 'html.parser')
         if soup.find(text='Opening') or soup.find(text='Career') or soup.find(text='Job') or \
                 soup.find(text='Apply'):
-            self._info['job_application_found'] = True
+            self._info['could_find_job_application'] = True
         else:
-            self._info['job_application_found'] = False
+            self._info['could_find_job_application'] = False
 
     def __getitem__(self, item):
         return self._info[item]
 
     def csv_fields(self):
-        return f'{",".join([str(data) for data in self._info.keys()])},{self._city.csv_fields()}'
+        return '{},{}'.format(','.join([str(data) for data in self._info.keys()]), self._city.csv_fields())
 
     def to_csv_str(self):
-        return f'{",".join([str(data) for data in self._info.values()])},{self._city.to_csv_str()}'
+        return '{},{}'.format(','.join([str(data) for data in self._info.values()]), self._city.to_csv_str())
 
 
 def main():
@@ -148,28 +148,28 @@ def main():
                                      company_type=args.company_type,
                                      start=args.start if args.start >= 0 else 0,
                                      max_count=args.max_count if args.max_count > 0 else MAX_COUNT)
-    print(f'accessing {url}')
+    print('accessing {}'.format(url))
     with urllib.request.urlopen(url) as response:
         html = response.read()
     city_infos = dict()
     company_infos = []
     soup = BeautifulSoup(html, 'html.parser')
     tr_tags = soup.find_all('tr', class_='row1') + soup.find_all('tr', class_='row2')
-    print(f'found {len(tr_tags)} companies')
+    print('found {} companies'.format(len(tr_tags)))
     company_type_count = dict()
     for i, tr_tag in enumerate(tr_tags):
         children = list(tr_tag.children)
         assert len(children) == 5
         name = children[0].get_text().strip()
-        print(f'[{i + 1}/{len(tr_tags)}] processing company "{name}"')
-        link = children[0].find('a').get('href').strip()
+        print('[{}/{}] processing company \'{}\''.format(i + 1, len(tr_tags), name))
+        website = children[0].find('a').get('href').strip()
         type_ = children[1].get_text().strip()
         city_name = children[2].get_text().strip()
         if city_name not in city_infos:
             city_infos[city_name] = CityInfoWebScraper(city_name, timeout=args.web_scrape_timeout)
         # state = children[3].get_text().strip()
         # country = children[4].get_text().strip()
-        company_infos.append(CompanyInfoWebScraper(name, link, type_, city_infos[city_name],
+        company_infos.append(CompanyInfoWebScraper(name, website, type_, city_infos[city_name],
                                                    timeout=args.web_scrape_timeout))
         company_type_count[type_] = company_type_count.get(type_, 0) + 1
 
@@ -181,23 +181,29 @@ def main():
             csv_file.write(company_infos[0].csv_fields() + '\n')
             for company_info in company_infos:
                 csv_file.write(company_info.to_csv_str() + '\n')
-                if company_info['accessible_website']:
-                    stats['accessible_websites'] += 1
-                if company_info['job_application_found']:
-                    stats['job_applications_found'] += 1
+                if company_info['could_access_company_website']:
+                    stats['could_access_company_website'] += 1
+                if company_info['could_find_job_application']:
+                    stats['could_access_company_website'] += 1
 
     print('Summary:')
     print('- companies per type:')
     for company_type, count in company_type_count.items():
-        print(f'{count} {company_type}(s) ({count / len(tr_tags) * 100.0}%)')
-    print(f'- accessible websites: '
-          f'{stats["accessible_websites"]}/'
-          f'{len(company_infos)} '
-          f'({stats["accessible_websites"] / len(company_infos) * 100.0}%)')
-    print(f'- job applications found: '
-          f'{stats["job_applications_found"]}/'
-          f'{len(company_infos)} '
-          f'({stats["job_applications_found"] / len(company_infos) * 100.0}%)')
+        print('{} {}(s) ({}%)'.format(
+            count, 
+            company_type, 
+            count / len(tr_tags) * 100.0
+        ))
+    print('- accessible company websites: {}/{} ({}%)'.format(
+        stats['could_access_company_website'],
+        len(company_infos),
+        stats['could_access_company_website'] / len(company_infos) * 100.0
+    ))
+    print('- job applications found: {}/{} ({}%)'.format(
+        stats['could_access_company_website'],
+        len(company_infos),
+        stats['could_access_company_website'] / len(company_infos) * 100.0
+    ))
 
 
 if __name__ == '__main__':

@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-from glob import glob
-from os.path import basename, splitext
-from setuptools import find_packages, setup
+from setuptools import setup
 
 setup(
     name='game-job-search-tools',
@@ -10,15 +8,12 @@ setup(
     description="Game Job Search Tools",
     author='Pedro Boechat',
     author_email='pboechat@gmail.com',
-    packages=find_packages('src'),
     package_dir={'': 'src'},
-    py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
+    py_modules=['gamedevmap_report'],
     install_requires=['beautifulsoup4==4.6.0'],
-    setup_requires=['pytest-runner'],
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'gamedevmap_report = gamedevmap.report:main'
+            'gamedevmap_report = gamedevmap_report:main'
         ]
     }
 )

@@ -1,17 +1,21 @@
 #!/bin/bash
 
-if ! which virtualenv >/dev/null; then
-    echo virtualenv is not installed.
-    echo please run pip3 install virtualenv.
+if [ -d venv ]; then
+    echo venv directory already exist.
     exit 0
 fi
 
-if [ -d dev_venv ]; then
-    echo installing virtualenv...
-    pip3 install virtualenv
+if ! which python3 >/dev/null; then
+    echo python3 is not installed.
+    exit 0
 fi
 
-virtualenv venv
+if ! which pip3 >/dev/null; then
+    echo pip3 is not installed.
+    exit 0
+fi
+
+python3 -m venv venv
 
 source venv/bin/activate
 

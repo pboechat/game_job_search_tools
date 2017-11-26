@@ -6,16 +6,17 @@ if exist venv (
     exit /b 0
 )
 
-where virtualenv.exe >nul 2>nul
+where python.exe >nul 2>nul
 if %errorlevel%==1 (
-    echo installing virtualenv...
-    pip install virtualenv
+    echo python.exe couldn't be found...
+    exit /b 0
 )
 
-virtualenv.exe venv
+python -m venv venv
 
-call .\venv\Scripts\activate.bat
+call venv\Scripts\activate.bat
 
+rem update pip to the latest version
 python -m pip install -U pip
 
 pip3 install -e .
